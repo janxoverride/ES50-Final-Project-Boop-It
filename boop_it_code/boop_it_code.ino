@@ -79,6 +79,7 @@ int displayScreen = 0; // variable for switch case for screen display
 int startTime = 0; // for timer function
 int quietStartTime = 0; //for the be quiet timer
 int soundOnce = 0; // counter to only play sound once
+int shakeThreshold = 30; // accelerometer value to trigger shake a paw
 
 float eulerAngles[3]; //for roll, yaw and pitch of IMU
 float eulerAngles2[3]; //created to check angular velocity
@@ -297,6 +298,9 @@ void setReports(void) { // for the accelerometer on IMU
   if (!bno08x.enableReport(SH2_SHAKE_DETECTOR)) { // shake detector function given in library
     Serial.println("Could not enable shake detector");
   }
+  if (!bno08x.enableReport(SH2_ACCELEROMETER)) { // accelerometer
+    Serial.println("Could not enable accelerometer");
+  }
 }
 
 void setup() {
@@ -329,9 +333,6 @@ void setup() {
     while(true);
   }
   Serial.println(" done.");
-
-  // 44100kHz stereo => 88200 sample rate
-  AudioZero.begin(88200);
 
 
 
@@ -476,8 +477,12 @@ int shake(){ //using shake detector from bno08x library
     // return;
     Serial.print("sensor error");
   }
+
+  if(sensorValue.un.accelerometer.x > shakeThreshold || sensorValue.un.accelerometer.y > shakeThreshold || sensorValue.un.accelerometer.z > shakeThreshold){
+    return 1;
+  }
   
-  sh2_ShakeDetector_t detection = sensorValue.un.shakeDetector;
+ /* sh2_ShakeDetector_t detection = sensorValue.un.shakeDetector;
   
     switch (detection.shake) { // if shake was detected in x or y or z then add to shakes
     case SHAKE_X:
@@ -496,9 +501,11 @@ int shake(){ //using shake detector from bno08x library
   if (shakes != lastShakes){
     return 1;
   }
+  */
   else{
     return 0;
   }
+  
       
 }
 
@@ -528,7 +535,8 @@ void loop() {
     score = 0; //reset score
     //display starting screen here
     display.drawBitmap(0, 0, loading, 128, 64, WHITE); // start screen
-    display.display();
+    display.display();    
+    
     if(soundOnce == 0){
        AudioZero.begin(88200);
        AudioZero.play(SD.open("loading.wav"));
@@ -578,7 +586,6 @@ void loop() {
     }
     
     else if(task == 1 && intask == 1){ //BOOP IT TASK
-      timer(interval, startTime);
       display.setCursor(45, 28); //center text
       display.println(F("BOOP IT")); // display command
       display.display();
@@ -588,13 +595,13 @@ void loop() {
        AudioZero.end();
        soundOnce ++;
       }
+      timer(interval, startTime);
       if(boopIt() == 1){
         score ++;
         intask = 0;   
       }
     }
     else if(task == 2 && intask == 1){// PET IT TASK
-      timer(interval, startTime);
       display.setCursor(46, 28);
       display.println(F("PET IT"));
       display.display();
@@ -604,6 +611,7 @@ void loop() {
        AudioZero.end();
        soundOnce ++;
       }
+      timer(interval, startTime);
       if(petIt() == 1){
         score ++;
         intask = 0;
@@ -615,7 +623,6 @@ void loop() {
       }
     }
     else if(task == 3 && intask == 1){ //BARK AT IT TASK
-      timer(interval, startTime);
       display.setCursor(32, 28);
       display.println(F("BARK AT IT"));
       display.println(analogRead(envelope));
@@ -626,13 +633,13 @@ void loop() {
        AudioZero.end();
        soundOnce ++;
       }
+      timer(interval, startTime);
       if(bark() == 1){
         score ++;
         intask = 0;
       }
     }
     else if(task == 4 && intask == 1){ // BE QUIET TASK
-      timer(interval, startTime);
       display.setCursor(32, 28);
       display.println(F("BE QUIET"));
       display.println(analogRead(envelope));
@@ -643,13 +650,13 @@ void loop() {
        AudioZero.end();
        soundOnce ++;
       }
+      timer(interval, startTime);
       if(quiet() == 1){
         score ++;
         intask = 0;
       }
     }
     else if(task == 5 && intask == 1){ // WIGGLE TASK
-      timer(interval, startTime);
       display.setCursor(40, 28);
       display.println(F("WIGGLE"));
       display.display();
@@ -659,6 +666,7 @@ void loop() {
        AudioZero.end();
        soundOnce ++;
       }
+      timer(interval, startTime);
       if(checkLower() == 1){
         lower = 1;
       }
@@ -671,9 +679,9 @@ void loop() {
       }
     }
     else if(task == 6 && intask == 1){////SHAKE A PAW TASK
-      timer(interval, startTime);
       display.setCursor(35, 28);
-      display.println(F("SHAKE A PAW"));    
+      display.println(F("SHAKE A PAW")); 
+      display.println(shakes);    
       display.display();
       if(soundOnce == 0){
        AudioZero.begin(88200);
@@ -681,13 +689,13 @@ void loop() {
        AudioZero.end();
        soundOnce ++;
       }
+      timer(interval, startTime);
       if(shake() == 1){
         score ++;
         intask = 0;
       }
     }
     else if(task == 7 && intask == 1){////TREAT IT TASK
-      timer(interval, startTime);
       display.setCursor(38, 28);
       display.println(F("TREAT IT"));
       display.display();
@@ -697,6 +705,7 @@ void loop() {
        AudioZero.end();
        soundOnce ++;
       }
+      timer(interval, startTime);
       if(treatIt() == 1){
         score ++;
         intask = 0;
